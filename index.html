@@ -1,0 +1,245 @@
+<html>
+<head>
+  <meta charset="utf8">
+  <title>Verselemzés</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto+Slab&display=swap');
+
+    html, body {
+      width: 100%;
+      height: 100vh;
+      margin: 0;
+      color: #eee;
+      font-family: "Roboto Slab", sans-serif;
+    }
+
+    body {
+      padding: 40px;
+      box-sizing: border-box;
+      background-color: #222;
+    }
+
+    .action-button {
+      border: 1px solid #666;
+      border-radius: 2px;
+      background-color: #555;
+      color: #eee;
+      height: 28px;
+      padding: 0 16px;
+      cursor: pointer;
+      font-family: "Arial", sans-serif;
+      outline: #365880 solid 0;
+      font-size: 1em;
+    }
+
+    .action-button.ok {
+      background-color: #365880;
+      border: 1px solid #4c708c;
+    }
+
+    .action-button:focus {
+      outline: 2px solid #365880;
+    }
+
+
+    textarea {
+      margin-bottom: 13px;
+      background-color: #333;
+      border: 1px solid #333;
+      color: #eee;
+    }
+
+    textarea:focus {
+      outline: none;
+      background-color: #444;
+    }
+
+    #tag-cont {
+      margin-top: 30px;
+    }
+
+    a, a:visited, a:focus, a:active {
+      color: #65b7e2;
+    }
+
+    table {
+      border-spacing: 0;
+    }
+
+    td {
+      border: 1px solid #555;
+      padding: 0 10px;
+      text-align: center;
+    }
+
+    .linenum {
+      border: none;
+      color: #666;
+    }
+
+    .hosszu {
+      background-color: #4c708c;
+    }
+  </style>
+
+</head>
+<body>
+<h1>Verselemző 2.0</h1>
+<textarea onkeyup="elemez()" onchange="elemez()" id="in" style="width: 100%; box-sizing: border-box" rows="6" placeholder="A vers..."></textarea>
+<br>
+<!--button onclick="elemez()" class="action-button">Elemez</button-->
+<br>
+<br>
+<label>
+  Sortörések megjelenítése:
+  <select id="after" onchange="elemez()" style="background-color: #555555; color: white;">
+    <option value="before">utolsó tag előtt</option>
+    <option value="after" selected>utolsó tag után</option>
+  </select>
+</label>
+<div id="tag-cont"></div>
+<br>
+<br>
+<footer style="text-align: center">&copy; Tóth Ambrus, 2020<br><a href="https://johetajava.hu/">johetajava.hu</a>
+</footer>
+<script>
+  const input = document.getElementById("in");
+  const tagCont = document.getElementById("tag-cont");
+
+  const maganhangzok = ["a", "á", "e", "é", "i", "í", "o", "ó", "ö", "ő", "u", "ú", "ü", "ű"];
+  const betuk = ["a", "á", "b", "c", "d", "e", "é", "f", "g", "h", "i", "í", "j", "k", "l", "m", "n", "o", "ó",
+    "ö", "ő", "p", "q", "r", "s", "t", "u", "ú", "ü", "ű", "v", "w", "x", "y", "z"];
+
+  const ketjegyumsh = ["cs", "dz, gy", "ly, ny", "sz", "ty", "zs"];
+  const hosszuMaganhagzok = ["á", "é", "í", "ó", "ő", "ú", "ű"];
+
+  function elemez() {
+    let vers = String(input.value);
+    if (!vers.length) return;
+
+    let tagok = [""];
+
+    let lastTag = 0;
+    let haveFound = false;
+
+    for (let i = 0; i < vers.length; i++) {
+      if (contains(maganhangzok, vers.charAt(i))) {
+        if (haveFound) {
+          lastTag++;
+          tagok.push("");
+        }
+        haveFound = true;
+      }
+
+      tagok[lastTag] += vers.charAt(i);
+    }
+
+
+    let hosszue = [];
+    for (let tag of tagok) {
+      let eredeti = tag;
+      tag = removeNonAbc(tag);
+      if (contains(hosszuMaganhagzok, tag.charAt(0))) {
+        hosszue.push(true); // Hosszú magánhagzó van benne
+      } else if (tag.length === 1) {
+        hosszue.push(false);
+      } else if (tag.length === 2) {
+        hosszue.push(false); // Rövid magánhagzó, és egyjegyű rövid mássalhangzó
+      } else if (tag.length === 4 && tag.substring(1, 4) === "dzs") {
+        // Rövid magánhangzó, csak egy dzs utána
+        if (eredeti.indexOf("dzs") === -1) {  // Két külön szóban volt. Vagy háromban, de olyan magyar szót nem ismerek, amiben nincs magánhangzó
+          hosszue.push(true);
+        } else {
+          hosszue.push(false); // háromjegyű mássalhagzó volt
+        }
+      } else if (tag.length === 3) {
+        if (tag.substring(1, 3) === "dz") {
+          // todo két szó-e
+          hosszue.push(false);
+        } else if (contains(ketjegyumsh, tag.substring(1, 3))) {
+          if (eredeti.indexOf(tag.substring(1, 3)) === -1) { // Két külön szóban volt a két mássalhangzó
+            hosszue.push(true);
+          } else {
+            hosszue.push(false); // kétjegyű mássalhangzó volt
+          }
+        } else {
+          hosszue.push(true);
+        }
+      } else {
+        hosszue.push(true);
+      }
+    }
+
+    let sorToresTagUtan = [];
+    for (let tag of tagok) {
+      sorToresTagUtan.push(contains(tag, "\n"));
+    }
+    tagCont.innerHTML = "";
+
+
+    const after = document.getElementById("after").value === "after";
+    let c = 1;
+    let ou = "<table><tr><td class=linenum>" + c + "</td>";
+    for (let i = 0; i < tagok.length; i++) {
+      if (sorToresTagUtan[i] && !after) {
+        c++;
+        ou += "</tr><tr><td class=linenum>" + c + "</td>"
+      }
+
+      if (hosszue[i]) {
+        ou += "<td class=hosszu>";
+      } else {
+        ou += "<td>";
+      }
+      ou += escapeHtml(tagok[i]) + "<br>";
+      ou += hosszue[i] ? "-" : "U";
+      ou += "<br>"
+      ou += "</td>";
+      if (sorToresTagUtan[i] && after) {
+        c++;
+        ou += "</tr><tr><td class=linenum>" + c + "</td>"
+      }
+    }
+
+    ou += "</table>"
+    tagCont.innerHTML += ou;
+    console.log(tagok);
+
+    input.setAttribute("rows", Math.max(5, c));
+  }
+
+  function removeNonAbc(string) {
+    string = String(string);
+    let ujszo = "";
+    for (let i = 0; i < string.length; i++) {
+      if (contains(betuk, string.charAt(i))) {
+        ujszo += string.charAt(i);
+      }
+    }
+    return ujszo;
+  }
+
+  function escapeHtml(text) {
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function contains(haystack, needle) {
+    needle = String(needle).toLowerCase();
+
+    for (let i = 0; i < haystack.length; i++) {
+      if (haystack[i] === needle) {
+        return true;
+      }
+    }
+    return false;
+  }
+</script>
+</body>
+</html>
