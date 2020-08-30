@@ -1,3 +1,4 @@
+
 <html>
 <head>
   <meta charset="utf8">
@@ -82,21 +83,47 @@
     .hosszu {
       background-color: #4c708c;
     }
+
+    label {
+      display: block;
+    }
+
+    select {
+      background-color: #555555;
+      color: #ccc;
+      display: inline-block;
+      margin-left: 10px;
+    }
   </style>
 
 </head>
 <body>
 <h1>Verselemző 2.0</h1>
-<textarea onkeyup="elemez()" onchange="elemez()" id="in" style="width: 100%; box-sizing: border-box" rows="6" placeholder="A vers..."></textarea>
+<textarea onkeyup="elemez()" onchange="elemez()" id="in" style="width: 100%; box-sizing: border-box" rows="6"
+          placeholder="A vers..."></textarea>
 <br>
 <!--button onclick="elemez()" class="action-button">Elemez</button-->
 <br>
 <br>
 <label>
   Sortörések megjelenítése:
-  <select id="after" onchange="elemez()" style="background-color: #555555; color: white;">
+  <select id="after" onchange="elemez()">
     <option value="before">utolsó tag előtt</option>
     <option value="after" selected>utolsó tag után</option>
+  </select>
+</label>
+<label>
+  Írásjelek szótaghatárnak vétele:
+  <select id="irasjelekszotaghatar" onchange="elemez()">
+    <option value="0">nem</option>
+    <option value="1" selected>igen</option>
+  </select>
+</label>
+<label>
+  Sortörések új szótagnak vétele:
+  <select id="sortoresujszotag" onchange="elemez()">
+    <option value="0">nem</option>
+    <option value="1" selected>igen</option>
   </select>
 </label>
 <div id="tag-cont"></div>
@@ -115,9 +142,26 @@
   const ketjegyumsh = ["cs", "dz, gy", "ly, ny", "sz", "ty", "zs"];
   const hosszuMaganhagzok = ["á", "é", "í", "ó", "ő", "ú", "ű"];
 
+  const elvalasztoIrasjelek = [",", "!", ".", ";"];
+
+  function removeFirstNonMaganhangzos(tag) {
+    tag = String(tag);
+    let firstMghPos = tag.length - 1;
+    for (let i = 0; i < tag.length; i++) {
+      if (contains(maganhangzok, tag.charAt(i))) {
+        firstMghPos = i;
+        break;
+      }
+    }
+    return tag.substring(firstMghPos, tag.length);
+
+  }
+
   function elemez() {
     let vers = String(input.value);
     if (!vers.length) return;
+    let szotaghatarIrasjelek = document.getElementById("irasjelekszotaghatar").value === "1";
+    let szotaghatarSortores = document.getElementById("sortoresujszotag").value === "1";
 
     let tagok = [""];
 
@@ -132,16 +176,38 @@
         }
         haveFound = true;
       }
-
       tagok[lastTag] += vers.charAt(i);
+
+      if (szotaghatarSortores && vers.charAt(i) === "\n") {
+        if (haveFound) {
+          lastTag++;
+          tagok.push("");
+        }
+        haveFound = false;
+      }
+
+      if(szotaghatarIrasjelek && contains(elvalasztoIrasjelek, vers.charAt(i))) {
+
+        if (haveFound) {
+          lastTag++;
+          tagok.push("");
+        }
+        haveFound = false;
+      }
+
+
     }
 
 
     let hosszue = [];
     for (let tag of tagok) {
+      tag = removeFirstNonMaganhangzos(tag);
       let eredeti = tag;
       tag = removeNonAbc(tag);
-      if (contains(hosszuMaganhagzok, tag.charAt(0))) {
+      console.log(tag);
+      if (tag === "") {
+        hosszue.push(false);
+      } else if (contains(hosszuMaganhagzok, tag.charAt(0))) {
         hosszue.push(true); // Hosszú magánhagzó van benne
       } else if (tag.length === 1) {
         hosszue.push(false);
@@ -179,10 +245,10 @@
     tagCont.innerHTML = "";
 
 
-    const after = document.getElementById("after").value === "after";
     let c = 1;
     let ou = "<table><tr><td class=linenum>" + c + "</td>";
     for (let i = 0; i < tagok.length; i++) {
+      let after = enterIsAfter(tagok[i])
       if (sorToresTagUtan[i] && !after) {
         c++;
         ou += "</tr><tr><td class=linenum>" + c + "</td>"
@@ -235,6 +301,17 @@
 
     for (let i = 0; i < haystack.length; i++) {
       if (haystack[i] === needle) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function enterIsAfter(tag){
+    for (let i = 0; i < tag.length; i++) {
+      if(tag.charAt(i) === "\n"){
+        return false;
+      } else if(contains(betuk, tag.charAt(i))){
         return true;
       }
     }
