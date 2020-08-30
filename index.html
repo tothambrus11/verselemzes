@@ -1,4 +1,3 @@
-
 <html>
 <head>
   <meta charset="utf8">
@@ -65,18 +64,18 @@
       color: #65b7e2;
     }
 
-    table {
+    table.vers {
       border-spacing: 0;
     }
 
-    td {
+    .vers td {
       border: 1px solid #555;
       padding: 0 10px;
       text-align: center;
     }
 
     .linenum {
-      border: none;
+      border: none !important;
       color: #666;
     }
 
@@ -105,31 +104,47 @@
 <!--button onclick="elemez()" class="action-button">Elemez</button-->
 <br>
 <br>
-<label>
-  Sortörések megjelenítése:
-  <select id="after" onchange="elemez()">
-    <option value="before">utolsó tag előtt</option>
-    <option value="after" selected>utolsó tag után</option>
-  </select>
-</label>
-<label>
-  Írásjelek szótaghatárnak vétele:
-  <select id="irasjelekszotaghatar" onchange="elemez()">
-    <option value="0">nem</option>
-    <option value="1" selected>igen</option>
-  </select>
-</label>
-<label>
-  Sortörések új szótagnak vétele:
-  <select id="sortoresujszotag" onchange="elemez()">
-    <option value="0">nem</option>
-    <option value="1" selected>igen</option>
-  </select>
-</label>
+<table>
+  <tr>
+    <td>
+      <label for="irasjelekszotaghatar">
+        Írásjelek szótaghatárnak vétele:
+      </label>
+    </td>
+    <td>
+      <select id="irasjelekszotaghatar" onchange="elemez()">
+        <option value="0" selected>nem</option>
+        <option value="1">igen</option>
+      </select>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <label for="sortoresujszotag">
+        Sortörések szótaghatárnak vétele:
+      </label>
+    </td>
+    <td>
+      <select id="sortoresujszotag" onchange="elemez()">
+        <option value="0">nem</option>
+        <option value="1" selected>igen</option>
+      </select>
+    </td>
+  </tr>
+</table>
+<p style="color: #999; font-size: 0.9em">
+  Figyelem! A program az idegen szavakat, valamint az Y-t magánhagzóként tartalmazó szavakat nem képes megfelelően
+  értelmezni. Az ilyen szavakat helyettesítse a magyar fonetikus megfelelőjükkel!
+</p>
+
 <div id="tag-cont"></div>
 <br>
 <br>
-<footer style="text-align: center">&copy; Tóth Ambrus, 2020<br><a href="https://johetajava.hu/">johetajava.hu</a>
+<footer style="text-align: center">
+  &copy; Tóth Ambrus, 2020<br>
+  <a href="https://johetajava.hu/">johetajava.hu</a><br>
+  <span style="color: #999;">/* Bugok, vélemények: <a href="mailto:ambrus@johetajava.hu" style="color: #4c708c">ambrus@johetajava.hu</a> */</span>
+
 </footer>
 <script>
   const input = document.getElementById("in");
@@ -186,7 +201,7 @@
         haveFound = false;
       }
 
-      if(szotaghatarIrasjelek && contains(elvalasztoIrasjelek, vers.charAt(i))) {
+      if (szotaghatarIrasjelek && contains(elvalasztoIrasjelek, vers.charAt(i))) {
 
         if (haveFound) {
           lastTag++;
@@ -196,6 +211,9 @@
       }
 
 
+    }
+    if (tagok[tagok.length - 1] === "") {
+      tagok.pop();
     }
 
 
@@ -246,7 +264,7 @@
 
 
     let c = 1;
-    let ou = "<table><tr><td class=linenum>" + c + "</td>";
+    let ou = "<table class=vers><tr><td class=linenum>" + c + "</td>";
     for (let i = 0; i < tagok.length; i++) {
       let after = enterIsAfter(tagok[i])
       if (sorToresTagUtan[i] && !after) {
@@ -273,7 +291,7 @@
     tagCont.innerHTML += ou;
     console.log(tagok);
 
-    input.setAttribute("rows", Math.max(5, c));
+    input.setAttribute("rows", Math.max(5, vers.split("\n").length));
   }
 
   function removeNonAbc(string) {
@@ -307,11 +325,11 @@
     return false;
   }
 
-  function enterIsAfter(tag){
+  function enterIsAfter(tag) {
     for (let i = 0; i < tag.length; i++) {
-      if(tag.charAt(i) === "\n"){
+      if (tag.charAt(i) === "\n") {
         return false;
-      } else if(contains(betuk, tag.charAt(i))){
+      } else if (contains(betuk, tag.charAt(i))) {
         return true;
       }
     }
